@@ -3,7 +3,7 @@ services:
   mathauth:
     image: mthaller/mathauth:f59d948a888ab1f75899735e61cfce7ae45cbba3
   mathahub:
-    image: mthaller/mathahub:2383dad89e9bff02ea83760af1efdec60cd3cc8b
+    image: mthaller/mathahub:fb0e072fca02a22ce5b58bf66e9ccb1e34ed572a
   extensible-checklist:
     image: mthaller/extensiblechecklist:0622447927d167ced3692b443591f91706394c55
   adventrunner:
