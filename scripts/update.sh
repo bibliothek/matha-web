@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Pulls the configured image tags and recreates the services whose image
+# changed; the rest keep running. Safe to run from cron.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+docker compose pull -q --ignore-pull-failures
+docker compose up -d
+docker image prune -f

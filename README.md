@@ -196,6 +196,19 @@ docker compose pull && docker compose up -d
 To pin a specific build instead, set the `*_IMAGE` var in `.env` to a
 commit-SHA tag.
 
+`scripts/update.sh` wraps exactly that plus a prune, for cron. Compose recreates
+only the services whose image actually changed — everything else keeps running,
+tunnel included:
+
+```bash
+sudo tee /etc/cron.d/matha-web-update >/dev/null <<'EOF'
+0 */6 * * * root /app/matha-web/scripts/update.sh >> /var/log/matha-web-update.log 2>&1
+EOF
+```
+
+Adjust the path to wherever this repo lives. The cron.d filename must not
+contain a dot or cron ignores the file.
+
 ### Backups
 
 Everything lives under `DATA_ROOT` — users, clients, tokens, data-protection
