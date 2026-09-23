@@ -8,7 +8,10 @@ cd "$(dirname "$0")/.."
 
 echo "=== $(date '+%Y-%m-%dT%H:%M:%S%z')"
 
-git pull -q --ff-only
+# Pull as the checkout's owner: git refuses a repo owned by another user.
+as_owner=()
+[ "$(id -u)" -eq 0 ] && as_owner=(runuser -u "$(stat -c %U .)" --)
+"${as_owner[@]}" git pull -q --ff-only
 docker compose pull -q --ignore-pull-failures
 docker compose up -d
 docker image prune -f
