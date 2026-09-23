@@ -65,6 +65,7 @@ sudo usermod -aG docker "$USER" && newgrp docker
 
 # 2. Config
 cp .env.example .env
+cp images.example.yml images.yml
 openssl rand -base64 32   # → MATHAHUB_CLIENT_SECRET
 openssl rand -base64 32   # → CHECKLIST_CLIENT_SECRET
 $EDITOR .env              # AUTH_PUBLIC_URL, admin password, tunnel token, secrets
@@ -158,22 +159,22 @@ docker compose down                             # stop (state on disk survives)
 
 ### Updating
 
-Image tags are pinned in [`images.yml`](images.yml), which each service in
-`docker-compose.yml` pulls its `image:` from via `extends`. The four app images
-are tagged with the full commit SHA of the build, so a deploy is a reviewable
-commit rather than whatever `:latest` happens to point at:
+Image tags are pinned in `images.yml`, which each service in
+`docker-compose.yml` pulls its `image:` from via `extends`. It is gitignored like
+`.env`; `images.example.yml` is the committed template. The four app images are
+tagged with the full commit SHA of the build, so the server runs exactly the
+builds you chose rather than whatever `:latest` happens to point at:
 
 1. Find the new tag on Docker Hub (every build pushes `:<commit-sha>` next to
    `:latest`), or take the SHA of the commit in the app's repo.
-2. Bump it in `images.yml`, commit and push.
-3. On the server: `git pull && docker compose pull && docker compose up -d`.
+2. Bump it in `images.yml` on the server.
+3. `docker compose pull && docker compose up -d`.
 
-Rolling back is the same with the previous SHA — `git revert` the bump.
+Rolling back is the same with the previous SHA.
 
-`scripts/update.sh` wraps step 3 plus a prune, for cron: it fast-forwards the
-checkout, so pushing a bump to `images.yml` is all a deploy takes. Compose
-recreates only the services whose image actually changed — everything else
-keeps running, tunnel included:
+`scripts/update.sh` wraps step 3 plus a prune, for cron. Compose recreates only
+the services whose image actually changed — everything else keeps running,
+tunnel included:
 
 ```bash
 sudo tee /etc/cron.d/matha-web-update >/dev/null <<'EOF'

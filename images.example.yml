@@ -1,6 +1,5 @@
-# Pinned image tags — the single place a deploy is decided.
+# Pinned image tags. Copy to images.yml (gitignored) and bump tags there.
 # The mthaller/* tags are the full commit SHA of the build in each app's repo.
-# Bump a tag here, commit, and scripts/update.sh rolls it out.
 services:
   mathauth:
     image: mthaller/mathauth:f59d948a888ab1f75899735e61cfce7ae45cbba3
