@@ -77,6 +77,15 @@ docker compose up -d
 docker compose logs -f
 ```
 
+**Re-run `sudo ./scripts/init-dirs.sh` whenever you drop files into the data
+directories by hand.** Files copied in as root stay root-owned, and MathaHub and
+the Checklist run as uid 1654 — they need to write the files themselves, not
+just the directory. Without the re-run, SQLite fails with *"attempt to write a
+readonly database"* and MathaHub's Edit page silently never saves. The script's
+`chown -R` repairs this, and re-running is safe: it leaves an existing
+`oidc-clients.json` alone. MathAuth and AdventRunner run as root, so their files
+are fine either way.
+
 ### Cloudflare Tunnel
 
 Zero Trust dashboard → **Networks → Tunnels → Create a tunnel** (Cloudflared),
@@ -91,52 +100,15 @@ copy the token into `TUNNEL_TOKEN`, then add three public hostnames:
 | `www.adventrunner.com` | `http://adventrunner:8085` |
 
 `adventrunner.com` is a second zone on the same Cloudflare account, so the same
-tunnel serves it. Its existing records are an apex `A → 20.50.2.23` and
-`www CNAME → adventrunner.azurewebsites.net`; both must go before the tunnel can
-claim the names.
+tunnel serves it.
 
 Cloudflare creates the proxied `CNAME → <tunnel-id>.cfargotunnel.com` records
 itself, since `thaller.space` is on the same account. Nothing needs to be opened
 on the server — the tunnel is outbound-only.
 
-All three names currently exist as DNS-only CNAMEs to Azure App Service, so
-adding them as public hostnames **replaces those records and cuts traffic over
-from Azure**. Delete the old CNAMEs first if the dashboard refuses to overwrite.
-
 Do **not** put the apps behind Cloudflare Access: MathaHub and the Checklist
 fetch OIDC metadata and tokens from `AUTH_PUBLIC_URL` server-side, and Access
 would block those calls.
-
-### Migrating from Azure App Service
-
-MathAuth's users, clients and tokens live in its SQLite DB. To keep the existing
-accounts, copy them off the Azure Files share before cutting over:
-
-```
-mathauth.db        → /app/mathauth/data/mathauth.db
-data-protection keys → /app/mathauth/data/keys/
-signing/encryption PFXs → /app/mathauth/certs/
-checklist.db       → /app/extensible-checklist/data/checklist.db
-users/, shared-links/ → /app/adventrunner/data/
-```
-
-**Re-run `sudo ./scripts/init-dirs.sh` after copying.** Files arrive owned by
-root, and MathaHub and the Checklist run as uid 1654 — they need to write the
-files themselves, not just the directory. Without the re-run, SQLite fails with
-*"attempt to write a readonly database"* and MathaHub's Edit page silently never
-saves. The script's `chown -R` repairs this, and re-running is safe: it leaves
-an existing `oidc-clients.json` alone. MathAuth and AdventRunner run as root, so
-their copied files are fine either way.
-
-AdventRunner stores one JSON file per user under `AR_Storage_Path`; copy both
-container folders across or every calendar is lost. Its Strava webhook
-subscription and Auth0 callback URLs are hostname-based, so they keep working as
-long as `adventrunner.com` stays the public name.
-
-A copied `mathauth.db` already contains the client registrations, and MathAuth
-never re-seeds an existing `ClientId` — so `oidc-clients.json` is ignored and
-`MATHAHUB_CLIENT_SECRET` / `CHECKLIST_CLIENT_SECRET` in `.env` must be the
-secrets Azure was using. Starting fresh instead means new accounts.
 
 ## Configuration
 
