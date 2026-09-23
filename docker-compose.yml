@@ -1,0 +1,88 @@
+name: matha-web
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  mathauth:
+    image: ${MATHAUTH_IMAGE:-mthaller/mathauth:latest}
+    # build:
+    #   context: ../mathauth
+    #   dockerfile: src/MathAuth.Server/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      TZ: ${TZ:-UTC}
+      OpenIddict__Issuer: ${AUTH_PUBLIC_URL:?set AUTH_PUBLIC_URL in .env}
+      DatabasePath: /app/data/mathauth.db
+      OidcClientsFile: /app/config/oidc-clients.json
+      DefaultAdmin__Username: ${MATHAUTH_ADMIN_USERNAME:?set MATHAUTH_ADMIN_USERNAME in .env}
+      DefaultAdmin__Password: ${MATHAUTH_ADMIN_PASSWORD:?set MATHAUTH_ADMIN_PASSWORD in .env}
+      Certificates__SigningPath: ${MATHAUTH_SIGNING_CERT_PATH-}
+      Certificates__EncryptionPath: ${MATHAUTH_ENCRYPTION_CERT_PATH-}
+      Certificates__Password: ${MATHAUTH_CERT_PASSWORD-}
+    volumes:
+      - ${DATA_ROOT:-/app}/mathauth/data:/app/data
+      - ${DATA_ROOT:-/app}/mathauth/config:/app/config:ro
+      - ${DATA_ROOT:-/app}/mathauth/certs:/app/certs:ro
+    networks: [matha]
+    logging: *logging
+
+  mathahub:
+    image: ${MATHAHUB_IMAGE:-mthaller/mathahub:921e85ac3b3771fb8c3992c7d6a61f4f1661a309}
+    # build:
+    #   context: ../matha-hub
+    restart: unless-stopped
+    depends_on: [mathauth]
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      TZ: ${TZ:-UTC}
+      OIDC_ISSUER: ${AUTH_PUBLIC_URL}
+      # Must be https outside of Development: the OIDC handler refuses plain-HTTP metadata.
+      OIDC_ISSUER_INTERNAL: ${MATHAUTH_INTERNAL_URL:-${AUTH_PUBLIC_URL}}
+      OIDC_CLIENT_ID: ${MATHAHUB_CLIENT_ID:-mathahub}
+      OIDC_CLIENT_SECRET: ${MATHAHUB_CLIENT_SECRET:?set MATHAHUB_CLIENT_SECRET in .env}
+      LinksDirectory: /app/links
+    volumes:
+      - ${DATA_ROOT:-/app}/mathahub/links:/app/links   # writable, uid 1654
+    networks: [matha]
+    logging: *logging
+
+  extensible-checklist:
+    image: ${CHECKLIST_IMAGE:-mthaller/extensiblechecklist:daf7bc59614e3bcb34a10fde4cf8d4dc9b997e15}
+    # build:
+    #   context: ../extensible-checklist
+    restart: unless-stopped
+    depends_on: [mathauth]
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      TZ: ${TZ:-UTC}
+      OIDC_ISSUER: ${AUTH_PUBLIC_URL}
+      OIDC_ISSUER_INTERNAL: ${MATHAUTH_INTERNAL_URL:-${AUTH_PUBLIC_URL}}
+      OIDC_CLIENT_ID: ${CHECKLIST_CLIENT_ID:-extensible-checklist}
+      OIDC_CLIENT_SECRET: ${CHECKLIST_CLIENT_SECRET:?set CHECKLIST_CLIENT_SECRET in .env}
+      ConnectionStrings__Default: Data Source=/app/data/checklist.db
+    volumes:
+      - ${DATA_ROOT:-/app}/extensible-checklist/data:/app/data   # writable, uid 1654
+    networks: [matha]
+    logging: *logging
+
+  cloudflared:
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.9.1}
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+      TUNNEL_METRICS: 0.0.0.0:2000
+      TUNNEL_TRANSPORT_PROTOCOL: ${TUNNEL_TRANSPORT_PROTOCOL:-auto}
+      TUNNEL_LOGLEVEL: ${TUNNEL_LOGLEVEL:-info}
+    depends_on: [mathauth, mathahub, extensible-checklist]
+    networks: [matha]
+    logging: *logging
+
+networks:
+  matha:
+    driver: bridge
