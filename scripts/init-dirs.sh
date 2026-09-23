@@ -13,7 +13,7 @@ fi
 data_root="${DATA_ROOT:-/app}"
 app_uid=1654
 
-mkdir -p "$data_root"/mathauth/{data,config,certs} \
+mkdir -p "$data_root"/mathauth/{data/keys,config,certs} \
          "$data_root"/mathahub/links \
          "$data_root"/extensible-checklist/data
 

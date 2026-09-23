@@ -21,7 +21,8 @@ match on both sides.
 All persistent state is bind-mounted from `DATA_ROOT/<appname>/` (default `/app`):
 
 ```
-/app/mathauth/data                      SQLite DB, data-protection keys  (root)
+/app/mathauth/data                      SQLite DB                        (root)
+/app/mathauth/data/keys                 data-protection keys             (root)
 /app/mathauth/config/oidc-clients.json  client registrations             (root, ro)
 /app/mathauth/certs                     signing.pfx, encryption.pfx      (root, ro)
 /app/mathahub/links/<user>.json         per-user link configs            (uid 1654)
