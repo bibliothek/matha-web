@@ -202,12 +202,16 @@ tunnel included:
 
 ```bash
 sudo tee /etc/cron.d/matha-web-update >/dev/null <<'EOF'
-0 */6 * * * root /app/matha-web/scripts/update.sh >> /var/log/matha-web-update.log 2>&1
+0 */6 * * * root /app/matha-web/scripts/update.sh > /var/log/matha-web-update.log 2>&1
 EOF
 ```
 
 Adjust the path to wherever this repo lives. The cron.d filename must not
 contain a dot or cron ignores the file.
+
+A single `>` means the log holds only the most recent run — it never grows and
+needs no rotation. Each run opens with a `=== <timestamp>` header so you can
+tell when it last fired.
 
 ### Backups
 
