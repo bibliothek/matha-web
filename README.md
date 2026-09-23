@@ -160,17 +160,24 @@ docker compose down                             # stop (state on disk survives)
 
 Image tags are pinned in [`images.yml`](images.yml), which each service in
 `docker-compose.yml` pulls its `image:` from via `extends`. The four app images
-are tagged with the full commit SHA of the build, so a deploy is a reviewable
-commit rather than whatever `:latest` happens to point at:
+are tagged only with the full commit SHA of the build — there is no `:latest` —
+so every deploy is a reviewable commit here.
 
-1. Find the new tag on Docker Hub (every build pushes `:<commit-sha>` next to
-   `:latest`), or take the SHA of the commit in the app's repo.
-2. Bump it in `images.yml`, commit and push.
-3. On the server: `git pull && docker compose pull && docker compose up -d`.
+The bump is automatic: after a successful build on its default branch (`main`
+for mathauth and matha-hub, `master` for extensible-checklist and AdventRunner),
+each app's workflow commits its new tag to `images.yml` as
+`Deploy <app> <short-sha>`. Builds from other branches publish their image but
+don't touch this repo. The workflows push with a `MATHA_WEB_TOKEN` secret — a
+fine-grained token with *Contents: read and write* on this repo — set in each
+app repo; if `main` here is protected, that token's user must be allowed to
+push to it.
 
-Rolling back is the same with the previous SHA — `git revert` the bump.
+To deploy a tag by hand (or roll back), edit `images.yml` — or `git revert` a
+bump — commit and push. The next build of that app overwrites it again.
 
-`scripts/update.sh` wraps step 3 plus a prune, for cron: it fast-forwards the
+On the server, a deploy is `git pull && docker compose pull && docker compose up -d`.
+
+`scripts/update.sh` wraps that plus a prune, for cron: it fast-forwards the
 checkout, so pushing a bump to `images.yml` is all a deploy takes. Compose
 recreates only the services whose image actually changed — everything else
 keeps running, tunnel included:
