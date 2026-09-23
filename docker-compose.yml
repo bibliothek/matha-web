@@ -8,7 +8,7 @@ x-logging: &logging
 
 services:
   mathauth:
-    image: ${MATHAUTH_IMAGE:-mthaller/mathauth:latest}
+    extends: { file: images.yml, service: mathauth }
     # build:
     #   context: ../mathauth
     #   dockerfile: src/MathAuth.Server/Dockerfile
@@ -32,7 +32,7 @@ services:
     logging: *logging
 
   mathahub:
-    image: ${MATHAHUB_IMAGE:-mthaller/mathahub:latest}
+    extends: { file: images.yml, service: mathahub }
     # build:
     #   context: ../matha-hub
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
     logging: *logging
 
   extensible-checklist:
-    image: ${CHECKLIST_IMAGE:-mthaller/extensiblechecklist:latest}
+    extends: { file: images.yml, service: extensible-checklist }
     # build:
     #   context: ../extensible-checklist
     restart: unless-stopped
@@ -71,7 +71,7 @@ services:
     logging: *logging
 
   adventrunner:
-    image: ${ADVENTRUNNER_IMAGE:-mthaller/adventrunner:latest}
+    extends: { file: images.yml, service: adventrunner }
     # build:
     #   context: ../AdventRunner
     restart: unless-stopped
@@ -89,7 +89,7 @@ services:
     logging: *logging
 
   cloudflared:
-    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.9.1}
+    extends: { file: images.yml, service: cloudflared }
     restart: unless-stopped
     command: ["tunnel", "--no-autoupdate", "run"]
     environment:
