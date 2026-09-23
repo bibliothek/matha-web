@@ -1,0 +1,14 @@
+# Pinned image tags — the single place a deploy is decided.
+# The mthaller/* tags are the full commit SHA of the build in each app's repo.
+# Bump a tag here, commit, and scripts/update.sh rolls it out.
+services:
+  mathauth:
+    image: mthaller/mathauth:f59d948a888ab1f75899735e61cfce7ae45cbba3
+  mathahub:
+    image: mthaller/mathahub:2383dad89e9bff02ea83760af1efdec60cd3cc8b
+  extensible-checklist:
+    image: mthaller/extensiblechecklist:751589476a179c1ed88a485c86a5615f84e4d49f
+  adventrunner:
+    image: mthaller/adventrunner:1e3fedf5fbfe5faad2e0141e8818034fc9b3731f
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.1

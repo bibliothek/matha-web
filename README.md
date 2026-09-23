@@ -125,7 +125,6 @@ secrets, redirect URIs). Everything else is driven by `.env`:
 | `AR_STRAVA_CLIENT_ID` / `AR_STRAVA_CLIENT_SECRET` | AdventRunner's Strava app |
 | `MATHAHUB_CLIENT_ID` / `MATHAHUB_CLIENT_SECRET` | MathaHub's credentials — must match `oidc-clients.json` |
 | `CHECKLIST_CLIENT_ID` / `CHECKLIST_CLIENT_SECRET` | The Checklist's credentials — must match `oidc-clients.json` |
-| `*_IMAGE` | Image tags to deploy |
 | `DATA_ROOT` | Base host directory for all app state (default `/app`) |
 | `ASPNETCORE_ENVIRONMENT` | `Production`. `Development` disables HTTPS enforcement — only for local testing. |
 
@@ -153,24 +152,28 @@ UI at `AUTH_PUBLIC_URL/Account/ChangePassword`.
 ```bash
 docker compose ps
 docker compose logs -f mathauth
-docker compose pull && docker compose up -d     # deploy new images
+docker compose pull && docker compose up -d     # deploy the tags in images.yml
 docker compose down                             # stop (state on disk survives)
 ```
 
 ### Updating
 
-All four images publish a `:latest` tag, so a deploy is just:
+Image tags are pinned in [`images.yml`](images.yml), which each service in
+`docker-compose.yml` pulls its `image:` from via `extends`. The four app images
+are tagged with the full commit SHA of the build, so a deploy is a reviewable
+commit rather than whatever `:latest` happens to point at:
 
-```bash
-docker compose pull && docker compose up -d
-```
+1. Find the new tag on Docker Hub (every build pushes `:<commit-sha>` next to
+   `:latest`), or take the SHA of the commit in the app's repo.
+2. Bump it in `images.yml`, commit and push.
+3. On the server: `git pull && docker compose pull && docker compose up -d`.
 
-To pin a specific build instead, set the `*_IMAGE` var in `.env` to a
-commit-SHA tag.
+Rolling back is the same with the previous SHA — `git revert` the bump.
 
-`scripts/update.sh` wraps exactly that plus a prune, for cron. Compose recreates
-only the services whose image actually changed — everything else keeps running,
-tunnel included:
+`scripts/update.sh` wraps step 3 plus a prune, for cron: it fast-forwards the
+checkout, so pushing a bump to `images.yml` is all a deploy takes. Compose
+recreates only the services whose image actually changed — everything else
+keeps running, tunnel included:
 
 ```bash
 sudo tee /etc/cron.d/matha-web-update >/dev/null <<'EOF'
