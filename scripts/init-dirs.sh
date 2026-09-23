@@ -15,7 +15,8 @@ app_uid=1654
 
 mkdir -p "$data_root"/mathauth/{data/keys,config,certs} \
          "$data_root"/mathahub/links \
-         "$data_root"/extensible-checklist/data
+         "$data_root"/extensible-checklist/data \
+         "$data_root"/adventrunner/data/{users,shared-links}
 
 chown -R "$app_uid:$app_uid" "$data_root/mathahub/links" \
                              "$data_root/extensible-checklist/data"

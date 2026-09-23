@@ -32,7 +32,7 @@ services:
     logging: *logging
 
   mathahub:
-    image: ${MATHAHUB_IMAGE:-mthaller/mathahub:921e85ac3b3771fb8c3992c7d6a61f4f1661a309}
+    image: ${MATHAHUB_IMAGE:-mthaller/mathahub:latest}
     # build:
     #   context: ../matha-hub
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
     logging: *logging
 
   extensible-checklist:
-    image: ${CHECKLIST_IMAGE:-mthaller/extensiblechecklist:daf7bc59614e3bcb34a10fde4cf8d4dc9b997e15}
+    image: ${CHECKLIST_IMAGE:-mthaller/extensiblechecklist:latest}
     # build:
     #   context: ../extensible-checklist
     restart: unless-stopped
@@ -70,6 +70,24 @@ services:
     networks: [matha]
     logging: *logging
 
+  adventrunner:
+    image: ${ADVENTRUNNER_IMAGE:-mthaller/adventrunner:latest}
+    # build:
+    #   context: ../AdventRunner
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      TZ: ${TZ:-UTC}
+      AR_Storage_Path: /app/data
+      AR_Auth0_ClientId: ${AR_AUTH0_CLIENT_ID:?set AR_AUTH0_CLIENT_ID in .env}
+      AR_Auth0_ClientSecret: ${AR_AUTH0_CLIENT_SECRET:?set AR_AUTH0_CLIENT_SECRET in .env}
+      AR_Strava_ClientId: ${AR_STRAVA_CLIENT_ID:?set AR_STRAVA_CLIENT_ID in .env}
+      AR_Strava_ClientSecret: ${AR_STRAVA_CLIENT_SECRET:?set AR_STRAVA_CLIENT_SECRET in .env}
+    volumes:
+      - ${DATA_ROOT:-/app}/adventrunner/data:/app/data
+    networks: [matha]
+    logging: *logging
+
   cloudflared:
     image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:2026.9.1}
     restart: unless-stopped
@@ -79,7 +97,7 @@ services:
       TUNNEL_METRICS: 0.0.0.0:2000
       TUNNEL_TRANSPORT_PROTOCOL: ${TUNNEL_TRANSPORT_PROTOCOL:-auto}
       TUNNEL_LOGLEVEL: ${TUNNEL_LOGLEVEL:-info}
-    depends_on: [mathauth, mathahub, extensible-checklist]
+    depends_on: [mathauth, mathahub, extensible-checklist, adventrunner]
     networks: [matha]
     logging: *logging
 

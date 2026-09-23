@@ -1,17 +1,20 @@
 # matha-web
 
-Docker Compose deployment for three apps behind a single Cloudflare Tunnel:
+Docker Compose deployment for four apps behind a single Cloudflare Tunnel:
 
 | App | Repo | Internal address |
 |---|---|---|
 | MathAuth (SSO / OIDC provider) | [bibliothek/mathauth](https://github.com/bibliothek/mathauth) | `http://mathauth:8080` |
 | MathaHub (link dashboard) | [bibliothek/matha-hub](https://github.com/bibliothek/matha-hub) | `http://mathahub:8080` |
 | Extensible Checklist | [bibliothek/extensible-checklist](https://github.com/bibliothek/extensible-checklist) | `http://extensible-checklist:8080` |
+| AdventRunner | [bibliothek/AdventRunner](https://github.com/bibliothek/AdventRunner) | `http://adventrunner:8085` |
 
 No host ports are published. The only inbound path is `cloudflared`, which
 reaches the apps over the internal compose network.
 
-MathaHub and the Checklist authenticate against MathAuth over OIDC. The client
+AdventRunner is standalone: it authenticates against Auth0 (`adventrunner.eu.auth0.com`,
+hardcoded in the app) and talks to Strava, so it needs no MathAuth client. The
+other two authenticate against MathAuth over OIDC. The client
 registrations live in `oidc-clients.json`, mounted read-only into MathAuth;
 each app gets its own credentials from `.env`. The client id and secret must
 match on both sides.
@@ -27,6 +30,7 @@ All persistent state is bind-mounted from `DATA_ROOT/<appname>/` (default `/app`
 /app/mathauth/certs                     signing.pfx, encryption.pfx      (root, ro)
 /app/mathahub/links/<user>.json         per-user link configs            (uid 1654)
 /app/extensible-checklist/data          SQLite DB                        (uid 1654)
+/app/adventrunner/data                  users/ + shared-links/ JSON      (root)
 ```
 
 MathaHub and the Checklist run as uid 1654, and bind mounts do not inherit the
@@ -83,6 +87,13 @@ copy the token into `TUNNEL_TOKEN`, then add three public hostnames:
 | `auth.thaller.space` | `http://mathauth:8080` |
 | `hub.thaller.space` | `http://mathahub:8080` |
 | `checklist.thaller.space` | `http://extensible-checklist:8080` |
+| `adventrunner.com` | `http://adventrunner:8085` |
+| `www.adventrunner.com` | `http://adventrunner:8085` |
+
+`adventrunner.com` is a second zone on the same Cloudflare account, so the same
+tunnel serves it. Its existing records are an apex `A → 20.50.2.23` and
+`www CNAME → adventrunner.azurewebsites.net`; both must go before the tunnel can
+claim the names.
 
 Cloudflare creates the proxied `CNAME → <tunnel-id>.cfargotunnel.com` records
 itself, since `thaller.space` is on the same account. Nothing needs to be opened
@@ -106,7 +117,21 @@ mathauth.db        → /app/mathauth/data/mathauth.db
 data-protection keys → /app/mathauth/data/keys/
 signing/encryption PFXs → /app/mathauth/certs/
 checklist.db       → /app/extensible-checklist/data/checklist.db
+users/, shared-links/ → /app/adventrunner/data/
 ```
+
+**Re-run `sudo ./scripts/init-dirs.sh` after copying.** Files arrive owned by
+root, and MathaHub and the Checklist run as uid 1654 — they need to write the
+files themselves, not just the directory. Without the re-run, SQLite fails with
+*"attempt to write a readonly database"* and MathaHub's Edit page silently never
+saves. The script's `chown -R` repairs this, and re-running is safe: it leaves
+an existing `oidc-clients.json` alone. MathAuth and AdventRunner run as root, so
+their copied files are fine either way.
+
+AdventRunner stores one JSON file per user under `AR_Storage_Path`; copy both
+container folders across or every calendar is lost. Its Strava webhook
+subscription and Auth0 callback URLs are hostname-based, so they keep working as
+long as `adventrunner.com` stays the public name.
 
 A copied `mathauth.db` already contains the client registrations, and MathAuth
 never re-seeds an existing `ClientId` — so `oidc-clients.json` is ignored and
@@ -124,6 +149,8 @@ secrets, redirect URIs). Everything else is driven by `.env`:
 | `TUNNEL_TOKEN` | Cloudflare Tunnel token |
 | `MATHAUTH_ADMIN_USERNAME` / `MATHAUTH_ADMIN_PASSWORD` | Admin account, seeded on first start (min. 8 chars) |
 | `MATHAUTH_SIGNING_CERT_PATH` / `MATHAUTH_ENCRYPTION_CERT_PATH` / `MATHAUTH_CERT_PASSWORD` | Token certificates, mounted from `DATA_ROOT/mathauth/certs` |
+| `AR_AUTH0_CLIENT_ID` / `AR_AUTH0_CLIENT_SECRET` | AdventRunner's Auth0 management-API client |
+| `AR_STRAVA_CLIENT_ID` / `AR_STRAVA_CLIENT_SECRET` | AdventRunner's Strava app |
 | `MATHAHUB_CLIENT_ID` / `MATHAHUB_CLIENT_SECRET` | MathaHub's credentials — must match `oidc-clients.json` |
 | `CHECKLIST_CLIENT_ID` / `CHECKLIST_CLIENT_SECRET` | The Checklist's credentials — must match `oidc-clients.json` |
 | `*_IMAGE` | Image tags to deploy |
@@ -158,15 +185,16 @@ docker compose pull && docker compose up -d     # deploy new images
 docker compose down                             # stop (state on disk survives)
 ```
 
-### Updating MathaHub / Checklist
+### Updating
 
-Only `mathauth` publishes a `:latest` tag; the other two images are tagged per
-commit. Grab the current tag and bump `.env`:
+All four images publish a `:latest` tag, so a deploy is just:
 
 ```bash
-curl -s https://hub.docker.com/v2/repositories/mthaller/mathahub/tags?page_size=1 \
-  | grep -o '"name":"[^"]*"' | head -1
+docker compose pull && docker compose up -d
 ```
+
+To pin a specific build instead, set the `*_IMAGE` var in `.env` to a
+commit-SHA tag.
 
 ### Backups
 
@@ -174,7 +202,7 @@ Everything lives under `DATA_ROOT` — users, clients, tokens, data-protection
 keys, checklists, link configs and certificates — plus `.env` in this repo.
 
 ```bash
-sudo tar czf "matha-web-$(date +%F).tar.gz" -C /app mathauth mathahub extensible-checklist
+sudo tar czf "matha-web-$(date +%F).tar.gz" -C /app mathauth mathahub extensible-checklist adventrunner
 ```
 
 ### Local debugging
@@ -186,7 +214,9 @@ docker compose exec mathauth sh
 docker run --rm --network matha-web_matha busybox wget -qO- http://mathauth:8080/health
 ```
 
-MathaHub exposes `/health`, the Checklist `/api/health`, MathAuth `/health`.
+MathaHub exposes `/health`, the Checklist `/api/health`, MathAuth `/health`;
+AdventRunner has none — `GET /` returns the SPA, and its API answers 403 without
+a bearer token.
 Note that OpenIddict rejects plain-HTTP requests in `Production`, so hitting
 `http://mathauth:8080/connect/authorize` directly will fail — that is expected;
 through the tunnel Cloudflare sets `X-Forwarded-Proto: https` and all three
@@ -194,7 +224,8 @@ apps honour it.
 
 ## Building from source instead of pulling images
 
-Clone the three repos next to this one, initialise their submodules
-(`git submodule update --init --recursive` — each needs `shared/matha-ui`), then
+Clone the repos next to this one and initialise the submodules of the three
+matha apps (`git submodule update --init --recursive` — each needs
+`shared/matha-ui`; AdventRunner has none), then
 uncomment the `build:` blocks in `docker-compose.yml` and run
 `docker compose up -d --build`.
