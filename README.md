@@ -216,11 +216,33 @@ tell when it last fired.
 ### Backups
 
 Everything lives under `DATA_ROOT` — users, clients, tokens, data-protection
-keys, checklists, link configs and certificates — plus `.env` in this repo.
+keys, checklists, link configs and certificates — and, with the repo checked out
+at `/app/matha-web`, `.env` too.
+
+`scripts/backup.sh` tars the whole directory and prunes archives older than 60
+days:
 
 ```bash
-sudo tar czf "matha-web-$(date +%F).tar.gz" -C /app mathauth mathahub extensible-checklist adventrunner
+sudo tee /etc/cron.d/matha-web-backup >/dev/null <<'EOF'
+30 3 * * * root /app/matha-web/scripts/backup.sh > /var/log/matha-web-backup.log 2>&1
+EOF
 ```
+
+| Variable | Default | |
+|---|---|---|
+| `DATA_ROOT` | `/app` | what gets archived (read from `.env`) |
+| `BACKUP_DIR` | `/var/backups/matha-web` | where archives land — must be outside `DATA_ROOT` |
+| `KEEP_DAYS` | `60` | retention |
+
+Archives are named `app-YYYY-MM-DD.tar.gz`, written `0600` in a `0700`
+directory: they contain client secrets, signing certificates and `.env`, so
+treat one like a password file, and copy it off the box if you want the backup
+to survive losing the box.
+
+The tar runs against a live stack. The SQLite databases are small and quiet
+enough that this is fine in practice, but it is a hot copy — if you want a
+guaranteed-consistent snapshot, `docker compose stop` before it and `start`
+after, at the cost of a few seconds of downtime.
 
 ### Local debugging
 
