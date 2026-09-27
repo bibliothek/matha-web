@@ -7,6 +7,6 @@ services:
   extensible-checklist:
     image: mthaller/extensiblechecklist:73bfb188045c3658387f8427d66adf33df9f89e6
   adventrunner:
-    image: mthaller/adventrunner:81eb438e7c6eb71873dc38ee709ddb0e025bddce
+    image: mthaller/adventrunner:2fb98055c1a7715045c29946754b969c14d9910a
   cloudflared:
     image: cloudflare/cloudflared:2026.9.1
