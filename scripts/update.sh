@@ -7,6 +7,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "=== $(date '+%Y-%m-%dT%H:%M:%S%z')"
+finished() {
+  local rc=$?
+  echo "=== finished $(date '+%Y-%m-%dT%H:%M:%S%z') (exit $rc, ${SECONDS}s)"
+}
+trap finished EXIT
 
 # Pull as the checkout's owner: git refuses a repo owned by another user.
 as_owner=()
