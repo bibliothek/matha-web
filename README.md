@@ -177,8 +177,10 @@ Adjust the path to wherever this repo lives. The cron.d filename must not
 contain a dot or cron ignores the file.
 
 A single `>` means the log holds only the most recent run — it never grows and
-needs no rotation. Each run opens with a `=== <timestamp>` header so you can
-tell when it last fired.
+needs no rotation. Each run opens with a `=== <timestamp>` header and closes
+with `=== finished <timestamp> (exit <code>, <n>s)`, so you can tell when it
+last fired, whether it succeeded and how long it took. The footer is written
+even when a step fails.
 
 ### Backups
 
