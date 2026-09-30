@@ -12,7 +12,6 @@ services:
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
-      TZ: ${TZ:-UTC}
       OpenIddict__Issuer: ${AUTH_PUBLIC_URL:?set AUTH_PUBLIC_URL in .env}
       DatabasePath: /app/data/mathauth.db
       OidcClientsFile: /app/config/oidc-clients.json
@@ -34,7 +33,6 @@ services:
     depends_on: [mathauth]
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
-      TZ: ${TZ:-UTC}
       OIDC_ISSUER: ${AUTH_PUBLIC_URL}
       OIDC_ISSUER_INTERNAL: ${MATHAUTH_INTERNAL_URL:-${AUTH_PUBLIC_URL}}
       OIDC_CLIENT_ID: ${MATHAHUB_CLIENT_ID:-mathahub}
@@ -51,7 +49,6 @@ services:
     depends_on: [mathauth]
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
-      TZ: ${TZ:-UTC}
       OIDC_ISSUER: ${AUTH_PUBLIC_URL}
       OIDC_ISSUER_INTERNAL: ${MATHAUTH_INTERNAL_URL:-${AUTH_PUBLIC_URL}}
       OIDC_CLIENT_ID: ${CHECKLIST_CLIENT_ID:-extensible-checklist}
@@ -67,7 +64,6 @@ services:
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
-      TZ: ${TZ:-UTC}
       AR_Storage_Path: /app/data
       AR_Auth0_ClientId: ${AR_AUTH0_CLIENT_ID:?set AR_AUTH0_CLIENT_ID in .env}
       AR_Auth0_ClientSecret: ${AR_AUTH0_CLIENT_SECRET:?set AR_AUTH0_CLIENT_SECRET in .env}
