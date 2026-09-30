@@ -9,9 +9,6 @@ x-logging: &logging
 services:
   mathauth:
     extends: { file: images.yml, service: mathauth }
-    # build:
-    #   context: ../mathauth
-    #   dockerfile: src/MathAuth.Server/Dockerfile
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
@@ -33,15 +30,12 @@ services:
 
   mathahub:
     extends: { file: images.yml, service: mathahub }
-    # build:
-    #   context: ../matha-hub
     restart: unless-stopped
     depends_on: [mathauth]
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       TZ: ${TZ:-UTC}
       OIDC_ISSUER: ${AUTH_PUBLIC_URL}
-      # Must be https outside of Development: the OIDC handler refuses plain-HTTP metadata.
       OIDC_ISSUER_INTERNAL: ${MATHAUTH_INTERNAL_URL:-${AUTH_PUBLIC_URL}}
       OIDC_CLIENT_ID: ${MATHAHUB_CLIENT_ID:-mathahub}
       OIDC_CLIENT_SECRET: ${MATHAHUB_CLIENT_SECRET:?set MATHAHUB_CLIENT_SECRET in .env}
@@ -53,8 +47,6 @@ services:
 
   extensible-checklist:
     extends: { file: images.yml, service: extensible-checklist }
-    # build:
-    #   context: ../extensible-checklist
     restart: unless-stopped
     depends_on: [mathauth]
     environment:
@@ -72,8 +64,6 @@ services:
 
   adventrunner:
     extends: { file: images.yml, service: adventrunner }
-    # build:
-    #   context: ../AdventRunner
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
