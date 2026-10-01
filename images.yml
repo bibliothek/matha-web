@@ -1,7 +1,7 @@
 # Pinned image tags, bumped by each app's CI.
 services:
   mathauth:
-    image: mthaller/mathauth:aa9a862c601edf88361bcbc7568a658c9caf2172
+    image: mthaller/mathauth:7983449ea88a6f1b21016ff0b0b8decd5663e1e0
   mathahub:
     image: mthaller/mathahub:fb0e072fca02a22ce5b58bf66e9ccb1e34ed572a
   extensible-checklist:
