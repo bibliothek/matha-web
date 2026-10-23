@@ -5,7 +5,7 @@ services:
   mathahub:
     image: mthaller/mathahub:0983b78cd1d76e06ccd6e6895eb8620d962baeba
   extensible-checklist:
-    image: mthaller/extensiblechecklist:5a8161177a943ab2464dc118acc1935910303481
+    image: mthaller/extensiblechecklist:addaf8ea6c196c287fdbe897ef77fe707907ead0
   adventrunner:
     image: mthaller/adventrunner:2fb98055c1a7715045c29946754b969c14d9910a
   cloudflared:
