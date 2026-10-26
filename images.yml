@@ -9,4 +9,4 @@ services:
   adventrunner:
     image: mthaller/adventrunner:2fb98055c1a7715045c29946754b969c14d9910a
   cloudflared:
-    image: cloudflare/cloudflared:2026.9.1
+    image: cloudflare/cloudflared:2026.10.4
